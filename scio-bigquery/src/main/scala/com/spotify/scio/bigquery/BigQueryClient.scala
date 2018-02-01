@@ -74,8 +74,9 @@ private[scio] trait QueryJob {
 class BigQueryClient private (private val projectId: String,
                               _credentials: Credentials = null) { self =>
 
-  def this(projectId: String, secretFile: File) =
-    this(
+  require(projectId != null && !projectId.isEmpty, "ProjectId shouldn't be null or empty")
+
+  def this(projectId: String, secretFile: File) = this(
       projectId,
       GoogleCredentials
         .fromStream(new FileInputStream(secretFile))
@@ -740,10 +741,14 @@ object BigQueryClient {
   /** Create a new BigQueryClient instance with the given project. */
   def apply(project: String): BigQueryClient = {
     val secret = sys.props(SECRET_KEY)
-    if (secret == null) {
-      new BigQueryClient(project)
+    if (project != null && !project.isEmpty) {
+      if (secret == null) {
+        new BigQueryClient(project)
+      } else {
+        BigQueryClient(project, new File(secret))
+      }
     } else {
-      BigQueryClient(project, new File(secret))
+      throw new IllegalArgumentException("project shouldn't be null or empty")
     }
   }
 
